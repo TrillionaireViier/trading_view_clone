@@ -165,6 +165,46 @@ export default function App() {
         value: volume,
         color: close >= open ? 'rgba(8, 153, 129, 0.35)' : 'rgba(242, 54, 69, 0.35)'
       })));
+
+      // Moving Average (SMA 20) Line Series
+      let sma20Series = null;
+      if (indicators.ma20) {
+        sma20Series = chart.addLineSeries({
+          color: '#2962ff',
+          lineWidth: 2,
+          title: 'SMA 20',
+        });
+        const smaData = [];
+        for (let i = 20; i < data.length; i++) {
+          const slice = data.slice(i - 20, i);
+          const sum = slice.reduce((acc, curr) => acc + curr.close, 0);
+          smaData.push({ time: data[i].time, value: parseFloat((sum / 20).toFixed(2)) });
+        }
+        sma20Series.setData(smaData);
+      }
+
+      // Realtime live tick simulation
+      let lastCandle = { ...data[data.length - 1] };
+      const interval = setInterval(() => {
+        const delta = (Math.random() - 0.49) * (lastCandle.close * 0.001);
+        lastCandle.close = parseFloat((lastCandle.close + delta).toFixed(2));
+        if (lastCandle.close > lastCandle.high) lastCandle.high = lastCandle.close;
+        if (lastCandle.close < lastCandle.low) lastCandle.low = lastCandle.close;
+
+        candlestickSeries.update({
+          time: lastCandle.time,
+          open: lastCandle.open,
+          high: lastCandle.high,
+          low: lastCandle.low,
+          close: lastCandle.close
+        });
+      }, 1000);
+
+      chartRef.current = chart;
+
+      return () => {
+        clearInterval(interval);
+      };
     } catch (err) {
       console.error('Chart initialization error:', err);
     }
