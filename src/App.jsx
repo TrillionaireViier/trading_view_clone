@@ -55,6 +55,7 @@ const generateChartData = (basePrice = 90000, count = 280) => {
 
 export default function App() {
   const chartContainerRef = useRef(null);
+  const drawingCanvasRef = useRef(null);
   const chartRef = useRef(null);
   const candlestickSeriesRef = useRef(null);
   const volumeSeriesRef = useRef(null);
@@ -63,6 +64,11 @@ export default function App() {
   const [selectedTimeframe, setSelectedTimeframe] = useState('1H');
   const [activeTab, setActiveTab] = useState('watchlist'); // watchlist, orderbook, trade, indicators
   const [drawingTool, setDrawingTool] = useState('cursor');
+  const [drawings, setDrawings] = useState([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [startPoint, setStartPoint] = useState(null);
+  const [currentPath, setCurrentPath] = useState([]);
+
   const [indicators, setIndicators] = useState({ rsi: true, ma20: true, ma50: false, bb: true });
   const [orderType, setOrderType] = useState('limit');
   const [orderSide, setOrderSide] = useState('buy');
@@ -76,6 +82,149 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState({ name: 'Trader (Demo)', role: 'user', balance: '48,250.00' });
   const [loginEmail, setLoginEmail] = useState('user@example.com');
   const [loginPassword, setLoginPassword] = useState('user123');
+
+  // Sync canvas size on mount & resize
+  useEffect(() => {
+    const resizeCanvas = () => {
+      if (drawingCanvasRef.current && chartContainerRef.current) {
+        drawingCanvasRef.current.width = chartContainerRef.current.clientWidth;
+        drawingCanvasRef.current.height = chartContainerRef.current.clientHeight;
+        redrawCanvas();
+      }
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    return () => window.removeEventListener('resize', resizeCanvas);
+  }, [drawings]);
+
+  const redrawCanvas = () => {
+    const canvas = drawingCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawings.forEach(d => {
+      if (d.tool === 'trendline') {
+        ctx.beginPath();
+        ctx.strokeStyle = '#2962ff';
+        ctx.lineWidth = 2;
+        ctx.moveTo(d.x1, d.y1);
+        ctx.lineTo(d.x2, d.y2);
+        ctx.stroke();
+      } else if (d.tool === 'fibonacci') {
+        const minY = Math.min(d.y1, d.y2);
+        const maxY = Math.max(d.y1, d.y2);
+        const h = maxY - minY;
+        const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+        const colors = ['#f23645', '#ff9800', '#ffeb3b', '#4caf50', '#00bcd4', '#2962ff', '#9c27b0'];
+
+        fibLevels.forEach((lvl, idx) => {
+          const y = minY + h * lvl;
+          ctx.beginPath();
+          ctx.strokeStyle = colors[idx];
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 4]);
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = colors[idx];
+          ctx.font = '11px JetBrains Mono';
+          ctx.fillText(`Fib ${(lvl * 100).toFixed(1)}%`, 10, y - 4);
+        });
+      } else if (d.tool === 'brush' && d.points.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 2.5;
+        ctx.moveTo(d.points[0].x, d.points[0].y);
+        d.points.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.stroke();
+      } else if (d.tool === 'text') {
+        ctx.fillStyle = '#ffeb3b';
+        ctx.font = '13px Inter, sans-serif';
+        ctx.fillText(`📌 ${d.text}`, d.x, d.y);
+      }
+    });
+  };
+
+  const handleMouseDown = (e) => {
+    if (drawingTool === 'cursor') return;
+    const rect = drawingCanvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setIsDrawing(true);
+    setStartPoint({ x, y });
+
+    if (drawingTool === 'brush') {
+      setCurrentPath([{ x, y }]);
+    } else if (drawingTool === 'text') {
+      const text = prompt('Введите заметку для графика:', 'Ключевой уровень поддержки');
+      if (text) {
+        const newDrawings = [...drawings, { tool: 'text', x, y, text }];
+        setDrawings(newDrawings);
+      }
+      setIsDrawing(false);
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDrawing || drawingTool === 'cursor') return;
+    const rect = drawingCanvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (drawingTool === 'brush') {
+      setCurrentPath(prev => [...prev, { x, y }]);
+    } else if (drawingTool === 'trendline' || drawingTool === 'fibonacci') {
+      redrawCanvas();
+      const ctx = drawingCanvasRef.current.getContext('2d');
+      if (drawingTool === 'trendline') {
+        ctx.beginPath();
+        ctx.strokeStyle = '#2962ff';
+        ctx.lineWidth = 2;
+        ctx.moveTo(startPoint.x, startPoint.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else if (drawingTool === 'fibonacci') {
+        const minY = Math.min(startPoint.y, y);
+        const maxY = Math.max(startPoint.y, y);
+        const h = maxY - minY;
+        [0, 0.382, 0.5, 0.618, 1].forEach(lvl => {
+          const ly = minY + h * lvl;
+          ctx.beginPath();
+          ctx.strokeStyle = '#2962ff';
+          ctx.setLineDash([3, 3]);
+          ctx.moveTo(0, ly);
+          ctx.lineTo(drawingCanvasRef.current.width, ly);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+      }
+    }
+  };
+
+  const handleMouseUp = (e) => {
+    if (!isDrawing || drawingTool === 'cursor') return;
+    const rect = drawingCanvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    let newDrawing = null;
+    if (drawingTool === 'trendline') {
+      newDrawing = { tool: 'trendline', x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
+    } else if (drawingTool === 'fibonacci') {
+      newDrawing = { tool: 'fibonacci', x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
+    } else if (drawingTool === 'brush') {
+      newDrawing = { tool: 'brush', points: currentPath };
+    }
+
+    if (newDrawing) {
+      setDrawings([...drawings, newDrawing]);
+    }
+    setIsDrawing(false);
+    setCurrentPath([]);
+  };
 
   const handleLogin = (e, role) => {
     e?.preventDefault();
@@ -369,7 +518,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden relative">
         
         {/* LEFT DRAWING TOOLBAR */}
-        <aside className="w-12 border-r border-[#2a2e39] bg-[#1e222d] flex flex-col items-center py-3 gap-2.5 shrink-0 z-10 shadow-lg">
+        <aside className="w-12 border-r border-[#2a2e39] bg-[#1e222d] flex flex-col items-center py-3 gap-2.5 shrink-0 z-20 shadow-lg">
           <button
             onClick={() => setDrawingTool('cursor')}
             className={`p-2 rounded transition-all ${drawingTool === 'cursor' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
@@ -381,7 +530,7 @@ export default function App() {
           <button
             onClick={() => setDrawingTool('trendline')}
             className={`p-2 rounded transition-all ${drawingTool === 'trendline' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Трендовая линия"
+            title="Трендовая линия (Зажмите мышью)"
           >
             <TrendingUp className="w-4 h-4" />
           </button>
@@ -397,7 +546,7 @@ export default function App() {
           <button
             onClick={() => setDrawingTool('brush')}
             className={`p-2 rounded transition-all ${drawingTool === 'brush' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Кисть / Граффити"
+            title="Кисть / Граффити (Рисование)"
           >
             <Edit3 className="w-4 h-4" />
           </button>
@@ -405,7 +554,7 @@ export default function App() {
           <button
             onClick={() => setDrawingTool('text')}
             className={`p-2 rounded transition-all ${drawingTool === 'text' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Заметка / Текст"
+            title="Добавить заметку на график"
           >
             <FileText className="w-4 h-4" />
           </button>
@@ -413,9 +562,15 @@ export default function App() {
           <div className="w-6 h-px bg-[#2a2e39] my-1" />
 
           <button
-            onClick={() => setDrawingTool('cursor')}
+            onClick={() => {
+              setDrawings([]);
+              if (drawingCanvasRef.current) {
+                const ctx = drawingCanvasRef.current.getContext('2d');
+                ctx.clearRect(0, 0, drawingCanvasRef.current.width, drawingCanvasRef.current.height);
+              }
+            }}
             className="p-2 rounded hover:bg-[#2a2e39] text-gray-400 hover:text-red-400 transition-colors"
-            title="Очистить всё"
+            title="Очистить все рисунки"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -436,8 +591,20 @@ export default function App() {
             </div>
           </div>
 
-          {/* LIGHTWEIGHT CHART CONTAINER */}
-          <div ref={chartContainerRef} className="flex-1 w-full h-full relative" />
+          {/* LIGHTWEIGHT CHART CONTAINER WITH INTERACTIVE DRAWING CANVAS OVERLAY */}
+          <div className="flex-1 w-full h-full relative overflow-hidden">
+            <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
+            
+            <canvas
+              ref={drawingCanvasRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              className={`absolute inset-0 w-full h-full z-10 ${
+                drawingTool !== 'cursor' ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'
+              }`}
+            />
+          </div>
 
           {/* BOTTOM TERMINAL PANEL */}
           <div className="h-44 border-t border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0">
