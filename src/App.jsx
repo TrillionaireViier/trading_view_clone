@@ -72,6 +72,21 @@ export default function App() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [favorites, setFavorites] = useState(['BTC/USDT', 'ETH/USDT', 'NVDA']);
 
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState({ name: 'Trader (Demo)', role: 'user', balance: '48,250.00' });
+  const [loginEmail, setLoginEmail] = useState('user@example.com');
+  const [loginPassword, setLoginPassword] = useState('user123');
+
+  const handleLogin = (e, role) => {
+    e?.preventDefault();
+    if (role === 'admin') {
+      setCurrentUser({ name: 'Admin Pro', role: 'admin', balance: '250,000.00' });
+    } else {
+      setCurrentUser({ name: 'Trader (User)', role: 'user', balance: '48,250.00' });
+    }
+    setIsAuthModalOpen(false);
+  };
+
   const [orders, setOrders] = useState([
     { id: 1, symbol: 'BTC/USDT', type: 'LIMIT BUY', price: '91200.00', amount: '0.10', status: 'Working', time: '14:22:05' },
     { id: 2, symbol: 'ETH/USDT', type: 'MARKET SELL', price: '3480.20', amount: '1.50', status: 'Filled', time: '12:05:40' },
@@ -336,12 +351,14 @@ export default function App() {
             </div>
           </div>
 
-          <button className="p-1.5 rounded hover:bg-[#2a2e39] text-gray-400 hover:text-white transition-colors" title="Уведомления">
-            <Bell className="w-4 h-4" />
+          <button 
+            onClick={() => setIsAuthModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2a2e39] hover:bg-[#363c4e] text-white text-xs font-bold rounded border border-gray-600 transition-all"
+          >
+            <Lock className="w-3.5 h-3.5 text-yellow-400" />
+            <span>{currentUser ? currentUser.name : 'Вход / Аккаунт'}</span>
           </button>
-          <button className="p-1.5 rounded hover:bg-[#2a2e39] text-gray-400 hover:text-white transition-colors" title="Поделиться снимком">
-            <Share2 className="w-4 h-4" />
-          </button>
+
           <button className="px-3.5 py-1.5 bg-[#2962ff] hover:bg-blue-600 text-white text-xs font-bold rounded shadow-md transition-all uppercase tracking-wider flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" /> Опубликовать
           </button>
@@ -752,6 +769,71 @@ export default function App() {
 
         </div>
       </div>
+
+      {/* LOGIN & DEMO CREDENTIALS MODAL */}
+      {isAuthModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#1e222d] border border-[#2a2e39] max-w-md w-full p-6 rounded-lg shadow-2xl relative text-white">
+            <button
+              onClick={() => setIsAuthModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white text-lg font-bold"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded bg-[#2962ff] flex items-center justify-center font-bold">
+                <Lock className="w-4 h-4 text-white" />
+              </div>
+              <h2 className="text-lg font-extrabold uppercase tracking-wide">Авторизация TradingView</h2>
+            </div>
+
+            <p className="text-xs text-gray-400 mb-6">
+              Выберите необходимую роль для входа в торговую панель или используйте быстрый вход:
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                type="button"
+                onClick={(e) => handleLogin(e, 'admin')}
+                className="p-3 bg-[#2962ff] hover:bg-blue-600 rounded text-left font-mono transition-all border border-blue-400/30"
+              >
+                <div className="font-extrabold text-xs text-white uppercase flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5" /> Войти как Admin
+                </div>
+                <div className="text-[10px] text-blue-200 mt-1">Полный доступ + $250k</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => handleLogin(e, 'user')}
+                className="p-3 bg-[#131722] hover:bg-[#2a2e39] rounded text-left font-mono transition-all border border-[#2a2e39]"
+              >
+                <div className="font-extrabold text-xs text-white uppercase flex items-center gap-1">
+                  <Compass className="w-3.5 h-3.5 text-emerald-400" /> Войти как User
+                </div>
+                <div className="text-[10px] text-gray-400 mt-1">Трейдер + $48.2k</div>
+              </button>
+            </div>
+
+            <div className="bg-[#131722] p-4 rounded border border-[#2a2e39] font-mono text-xs space-y-2">
+              <div className="font-bold text-yellow-400 uppercase text-[11px] mb-1">Демо аккаунты для входа:</div>
+              <div className="flex justify-between items-center bg-[#1e222d] p-2 rounded border border-[#2a2e39]">
+                <div>
+                  <span className="text-gray-400">Admin Email:</span> <strong className="text-white">admin@tradingview.com</strong>
+                </div>
+                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">admin123</span>
+              </div>
+              <div className="flex justify-between items-center bg-[#1e222d] p-2 rounded border border-[#2a2e39]">
+                <div>
+                  <span className="text-gray-400">User Email:</span> <strong className="text-white">user@tradingview.com</strong>
+                </div>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded">user123</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
