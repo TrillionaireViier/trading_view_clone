@@ -104,77 +104,92 @@ export default function App() {
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#131722' },
-        textColor: '#d1d4dc',
-        fontSize: 12,
-        fontFamily: "'Inter', sans-serif",
-      },
-      grid: {
-        vertLines: { color: 'rgba(42, 46, 57, 0.6)' },
-        horzLines: { color: 'rgba(42, 46, 57, 0.6)' },
-      },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-        vertLine: { color: '#758696', width: 1, style: LineStyle.Dashed },
-        horzLine: { color: '#758696', width: 1, style: LineStyle.Dashed },
-      },
-      rightPriceScale: {
-        borderColor: '#2a2e39',
-        textColor: '#d1d4dc',
-      },
-      timeScale: {
-        borderColor: '#2a2e39',
-        timeVisible: true,
-        secondsVisible: false,
-      },
-      handleScroll: true,
-      handleScale: true,
-    });
+    let chart = null;
 
-    chartRef.current = chart;
+    try {
+      const container = chartContainerRef.current;
+      const width = container.clientWidth || (window.innerWidth - 360);
+      const height = container.clientHeight || (window.innerHeight - 220);
 
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: '#089981',
-      downColor: '#f23645',
-      borderVisible: false,
-      wickUpColor: '#089981',
-      wickDownColor: '#f23645',
-    });
-    candlestickSeriesRef.current = candlestickSeries;
+      chart = createChart(container, {
+        width: Math.max(300, width),
+        height: Math.max(200, height),
+        layout: {
+          background: { type: ColorType.Solid, color: '#131722' },
+          textColor: '#d1d4dc',
+          fontSize: 12,
+          fontFamily: "'Inter', sans-serif",
+        },
+        grid: {
+          vertLines: { color: 'rgba(42, 46, 57, 0.6)' },
+          horzLines: { color: 'rgba(42, 46, 57, 0.6)' },
+        },
+        crosshair: {
+          mode: CrosshairMode.Normal,
+          vertLine: { color: '#758696', width: 1, style: LineStyle.Dashed },
+          horzLine: { color: '#758696', width: 1, style: LineStyle.Dashed },
+        },
+        rightPriceScale: {
+          borderColor: '#2a2e39',
+          textColor: '#d1d4dc',
+        },
+        timeScale: {
+          borderColor: '#2a2e39',
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        handleScroll: true,
+        handleScale: true,
+      });
 
-    const volumeSeries = chart.addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: { type: 'volume' },
-      priceScaleId: '',
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-    volumeSeriesRef.current = volumeSeries;
+      chartRef.current = chart;
 
-    const data = generateChartData(selectedSymbol.price);
-    candlestickSeries.setData(data.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
-    volumeSeries.setData(data.map(({ time, volume, open, close }) => ({
-      time,
-      value: volume,
-      color: close >= open ? 'rgba(8, 153, 129, 0.4)' : 'rgba(242, 54, 69, 0.4)'
-    })));
+      const candlestickSeries = chart.addCandlestickSeries({
+        upColor: '#089981',
+        downColor: '#f23645',
+        borderVisible: false,
+        wickUpColor: '#089981',
+        wickDownColor: '#f23645',
+      });
+      candlestickSeriesRef.current = candlestickSeries;
+
+      const volumeSeries = chart.addHistogramSeries({
+        color: '#26a69a',
+        priceFormat: { type: 'volume' },
+        priceScaleId: '',
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+      volumeSeriesRef.current = volumeSeries;
+
+      const data = generateChartData(selectedSymbol.price);
+      candlestickSeries.setData(data.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
+      volumeSeries.setData(data.map(({ time, volume, open, close }) => ({
+        time,
+        value: volume,
+        color: close >= open ? 'rgba(8, 153, 129, 0.4)' : 'rgba(242, 54, 69, 0.4)'
+      })));
+    } catch (err) {
+      console.error('Lightweight Charts initialization error:', err);
+    }
 
     const handleResize = () => {
-      if (chartContainerRef.current) {
-        chart.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-          height: chartContainerRef.current.clientHeight,
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth || 800,
+          height: chartContainerRef.current.clientHeight || 500,
         });
       }
     };
 
     window.addEventListener('resize', handleResize);
-    handleResize();
+    setTimeout(handleResize, 100);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
     };
   }, [selectedSymbol]);
 
