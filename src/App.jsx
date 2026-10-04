@@ -435,10 +435,10 @@ export default function App() {
   });
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#131722] text-[#d1d4dc] overflow-hidden selection:bg-[#2962ff] selection:text-white">
+    <div className="flex flex-col h-screen w-screen bg-[#131722] text-[#d1d4dc] overflow-y-auto md:overflow-hidden selection:bg-[#2962ff] selection:text-white">
       
       {/* PROFESSIONAL TRADINGVIEW TOP NAVBAR */}
-      <header className="flex items-center justify-between h-12 px-3 border-b border-[#2a2e39] bg-[#1e222d] shrink-0 z-20">
+      <header className="flex items-center justify-between h-12 px-3 border-b border-[#2a2e39] bg-[#1e222d] shrink-0 z-20 overflow-x-auto scrollbar-thin">
         <div className="flex items-center gap-3">
           
           {/* Brand Logo & Switcher */}
@@ -529,10 +529,10 @@ export default function App() {
       </header>
 
       {/* MAIN WORKSPACE BODY */}
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-col md:flex-row flex-1 overflow-x-hidden overflow-y-auto md:overflow-hidden relative">
         
         {/* LEFT DRAWING TOOLBAR */}
-        <aside className="w-12 border-r border-[#2a2e39] bg-[#1e222d] flex flex-col items-center py-3 gap-2.5 shrink-0 z-20 shadow-lg">
+        <aside className="w-full md:w-12 h-12 md:h-auto border-r border-[#2a2e39] bg-[#1e222d] flex flex-row md:flex-col items-center py-1 md:py-3 px-2 md:px-0 gap-2.5 shrink-0 z-20 shadow-lg overflow-x-auto md:overflow-y-auto scrollbar-thin">
           <button
             onClick={() => setDrawingTool('cursor')}
             className={`p-2 rounded transition-all ${drawingTool === 'cursor' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
@@ -621,8 +621,8 @@ export default function App() {
           </div>
 
           {/* BOTTOM TERMINAL PANEL */}
-          <div className="h-44 border-t border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0">
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#2a2e39] bg-[#181c27]">
+          <div className="h-48 md:h-44 border-t border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#2a2e39] bg-[#181c27] overflow-x-auto scrollbar-thin">
               <div className="flex items-center gap-4 text-xs font-bold">
                 <button 
                   onClick={() => setBottomTab('orders')}
@@ -656,8 +656,8 @@ export default function App() {
 
             {/* TAB CONTENT: OPEN ORDERS */}
             {bottomTab === 'orders' && (
-              <div className="flex-1 overflow-y-auto p-2">
-                <table className="w-full text-left text-xs font-mono">
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-2 scrollbar-thin">
+                <table className="w-full min-w-[650px] text-left text-xs font-mono">
                   <thead>
                     <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
                       <th className="pb-2 font-bold">Время</th>
@@ -705,8 +705,8 @@ export default function App() {
 
             {/* TAB CONTENT: TRADE HISTORY */}
             {bottomTab === 'history' && (
-              <div className="flex-1 overflow-y-auto p-2">
-                <table className="w-full text-left text-xs font-mono">
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-2 scrollbar-thin">
+                <table className="w-full min-w-[650px] text-left text-xs font-mono">
                   <thead>
                     <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
                       <th className="pb-2 font-bold">Время</th>
@@ -743,8 +743,8 @@ export default function App() {
 
             {/* TAB CONTENT: PORTFOLIO ASSETS */}
             {bottomTab === 'portfolio' && (
-              <div className="flex-1 overflow-y-auto p-2">
-                <table className="w-full text-left text-xs font-mono">
+              <div className="flex-1 overflow-x-auto overflow-y-auto p-2 scrollbar-thin">
+                <table className="w-full min-w-[650px] text-left text-xs font-mono">
                   <thead>
                     <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
                       <th className="pb-2 font-bold">Актив</th>
@@ -776,7 +776,7 @@ export default function App() {
         </div>
 
         {/* RIGHT SIDEBAR PANEL */}
-        <div className="w-80 border-l border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0 shadow-2xl">
+        <div className="w-full md:w-80 border-l border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0 shadow-2xl overflow-y-auto scrollbar-thin max-h-[600px] md:max-h-none">
           
           {/* TAB HEADERS */}
           <div className="flex items-center border-b border-[#2a2e39] bg-[#181c27]">
@@ -873,7 +873,7 @@ export default function App() {
 
           {/* TAB 2: ORDERBOOK */}
           {activeTab === 'orderbook' && (
-            <div className="flex-1 flex flex-col p-3 min-h-0 font-mono text-xs">
+            <div className="flex-1 flex flex-col p-3 min-h-0 font-mono text-xs overflow-y-auto scrollbar-thin">
               <div className="text-gray-400 mb-2 font-bold uppercase text-[10px] flex justify-between px-1">
                 <span>Цена ({selectedSymbol.symbol.split('/')[1] || 'USD'})</span>
                 <span>Размер</span>
@@ -911,7 +911,7 @@ export default function App() {
 
           {/* TAB 3: TRADE EXECUTION PANEL */}
           {activeTab === 'trade' && (
-            <div className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
+            <div className="flex-1 p-4 flex flex-col justify-between overflow-y-auto scrollbar-thin">
               <div>
                 {/* Buy / Sell toggle */}
                 <div className="flex rounded-md bg-[#131722] p-1 border border-[#2a2e39] mb-4 shadow-inner">
@@ -1015,7 +1015,7 @@ export default function App() {
 
           {/* TAB 4: INDICATORS SELECTION */}
           {activeTab === 'indicators' && (
-            <div className="flex-1 p-4 flex flex-col min-h-0 space-y-3">
+            <div className="flex-1 p-4 flex flex-col min-h-0 space-y-3 overflow-y-auto scrollbar-thin">
               <h3 className="font-extrabold text-white text-sm uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Activity className="w-4 h-4 text-[#2962ff]" /> Индикаторы Графика
               </h3>
