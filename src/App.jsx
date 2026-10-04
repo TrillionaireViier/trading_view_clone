@@ -82,6 +82,10 @@ export default function App() {
     { id: 2, symbol: 'ETH/USDT', type: 'LIMIT SELL', price: '3,550.00', amount: '1.50 ETH', status: 'Working', time: '11:15:00' },
   ]);
 
+  const [isMagnet, setIsMagnet] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({ name: 'Trader (Demo)', role: 'user', balance: '48,250.00' });
   const [loginEmail, setLoginEmail] = useState('user@example.com');
@@ -106,6 +110,7 @@ export default function App() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (isHidden) return;
 
     drawings.forEach(d => {
       if (d.tool === 'trendline') {
@@ -115,6 +120,18 @@ export default function App() {
         ctx.moveTo(d.x1, d.y1);
         ctx.lineTo(d.x2, d.y2);
         ctx.stroke();
+      } else if (d.tool === 'horizline') {
+        ctx.beginPath();
+        ctx.strokeStyle = '#ff9800';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.moveTo(0, d.y);
+        ctx.lineTo(canvas.width, d.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ff9800';
+        ctx.font = '11px JetBrains Mono';
+        ctx.fillText('Уровень H-L', 15, d.y - 5);
       } else if (d.tool === 'fibonacci') {
         const minY = Math.min(d.y1, d.y2);
         const maxY = Math.max(d.y1, d.y2);
@@ -136,6 +153,23 @@ export default function App() {
           ctx.font = '11px JetBrains Mono';
           ctx.fillText(`Fib ${(lvl * 100).toFixed(1)}%`, 10, y - 4);
         });
+      } else if (d.tool === 'long' || d.tool === 'short') {
+        const isLong = d.tool === 'long';
+        const color = isLong ? '#089981' : '#f23645';
+        ctx.fillStyle = isLong ? 'rgba(8, 153, 129, 0.2)' : 'rgba(242, 54, 69, 0.2)';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        const top = Math.min(d.y1, d.y2);
+        const height = Math.abs(d.y2 - d.y1);
+        ctx.fillRect(d.x1, top, 120, height);
+        ctx.strokeRect(d.x1, top, 120, height);
+        ctx.fillStyle = color;
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillText(isLong ? '▲ LONG POS' : '▼ SHORT POS', d.x1 + 10, top + 20);
+      } else if (d.tool === 'grid') {
+        ctx.strokeStyle = 'rgba(41, 98, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(d.x1, d.y1, d.x2 - d.x1, d.y2 - d.y1);
       } else if (d.tool === 'brush' && d.points.length > 1) {
         ctx.beginPath();
         ctx.strokeStyle = '#00e676';
@@ -217,8 +251,14 @@ export default function App() {
     let newDrawing = null;
     if (drawingTool === 'trendline') {
       newDrawing = { tool: 'trendline', x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
+    } else if (drawingTool === 'horizline') {
+      newDrawing = { tool: 'horizline', y };
     } else if (drawingTool === 'fibonacci') {
       newDrawing = { tool: 'fibonacci', x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
+    } else if (drawingTool === 'long' || drawingTool === 'short') {
+      newDrawing = { tool: drawingTool, x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
+    } else if (drawingTool === 'grid') {
+      newDrawing = { tool: 'grid', x1: startPoint.x, y1: startPoint.y, x2: x, y2: y };
     } else if (drawingTool === 'brush') {
       newDrawing = { tool: 'brush', points: currentPath };
     }
@@ -532,7 +572,8 @@ export default function App() {
       <div className="flex flex-col md:flex-row flex-1 overflow-x-hidden overflow-y-auto md:overflow-hidden relative">
         
         {/* LEFT DRAWING TOOLBAR */}
-        <aside className="w-full md:w-12 h-12 md:h-auto border-r border-[#2a2e39] bg-[#1e222d] flex flex-row md:flex-col items-center py-1 md:py-3 px-2 md:px-0 gap-2.5 shrink-0 z-20 shadow-lg overflow-x-auto md:overflow-y-auto scrollbar-thin">
+        <aside className="w-full md:w-12 h-12 md:h-auto border-r border-[#2a2e39] bg-[#1e222d] flex flex-row md:flex-col items-center py-1 md:py-3 px-2 md:px-0 gap-2 shrink-0 z-20 shadow-lg overflow-x-auto md:overflow-y-auto scrollbar-thin">
+          {/* 1. Crosshair / Cursor */}
           <button
             onClick={() => setDrawingTool('cursor')}
             className={`p-2 rounded transition-all ${drawingTool === 'cursor' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
@@ -541,14 +582,25 @@ export default function App() {
             <Crosshair className="w-4 h-4" />
           </button>
 
+          {/* 2. Trendline */}
           <button
             onClick={() => setDrawingTool('trendline')}
             className={`p-2 rounded transition-all ${drawingTool === 'trendline' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Трендовая линия (Зажмите мышью)"
+            title="Трендовая линия"
           >
             <TrendingUp className="w-4 h-4" />
           </button>
 
+          {/* 3. Horizontal Line */}
+          <button
+            onClick={() => setDrawingTool('horizline')}
+            className={`p-2 rounded transition-all ${drawingTool === 'horizline' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title="Горизонтальный уровень"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+
+          {/* 4. Fibonacci */}
           <button
             onClick={() => setDrawingTool('fibonacci')}
             className={`p-2 rounded transition-all ${drawingTool === 'fibonacci' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
@@ -557,24 +609,81 @@ export default function App() {
             <SlidersHorizontal className="w-4 h-4" />
           </button>
 
+          {/* 5. Brush / Freehand */}
           <button
             onClick={() => setDrawingTool('brush')}
             className={`p-2 rounded transition-all ${drawingTool === 'brush' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Кисть / Граффити (Рисование)"
+            title="Кисть / Рисование"
           >
             <Edit3 className="w-4 h-4" />
           </button>
 
+          {/* 6. Text / Note */}
           <button
             onClick={() => setDrawingTool('text')}
             className={`p-2 rounded transition-all ${drawingTool === 'text' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
-            title="Добавить заметку на график"
+            title="Текстовая заметка"
           >
             <FileText className="w-4 h-4" />
           </button>
 
-          <div className="w-6 h-px bg-[#2a2e39] my-1" />
+          {/* 7. Long Position Tool */}
+          <button
+            onClick={() => setDrawingTool('long')}
+            className={`p-2 rounded transition-all ${drawingTool === 'long' ? 'bg-[#089981] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title="Длинная позиция (Long)"
+          >
+            <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+          </button>
 
+          {/* 8. Short Position Tool */}
+          <button
+            onClick={() => setDrawingTool('short')}
+            className={`p-2 rounded transition-all ${drawingTool === 'short' ? 'bg-[#f23645] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title="Короткая позиция (Short)"
+          >
+            <ArrowDownRight className="w-4 h-4 text-red-400" />
+          </button>
+
+          {/* 9. Grid / Channel */}
+          <button
+            onClick={() => setDrawingTool('grid')}
+            className={`p-2 rounded transition-all ${drawingTool === 'grid' ? 'bg-[#2962ff] text-white shadow' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title="Сетка / Канал"
+          >
+            <Grid className="w-4 h-4" />
+          </button>
+
+          <div className="w-6 md:w-full h-px bg-[#2a2e39] my-1" />
+
+          {/* 10. Magnet mode */}
+          <button
+            onClick={() => setIsMagnet(!isMagnet)}
+            className={`p-2 rounded transition-all ${isMagnet ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title={isMagnet ? 'Магнит включен' : 'Включить магнит'}
+          >
+            <Zap className="w-4 h-4" />
+          </button>
+
+          {/* 11. Lock drawings */}
+          <button
+            onClick={() => setIsLocked(!isLocked)}
+            className={`p-2 rounded transition-all ${isLocked ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title={isLocked ? 'Рисунки заблокированы' : 'Заблокировать все рисунки'}
+          >
+            <Lock className="w-4 h-4" />
+          </button>
+
+          {/* 12. Hide / Show drawings */}
+          <button
+            onClick={() => setIsHidden(!isHidden)}
+            className={`p-2 rounded transition-all ${isHidden ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-gray-400 hover:bg-[#2a2e39] hover:text-white'}`}
+            title={isHidden ? 'Показать рисунки' : 'Скрыть рисунки'}
+          >
+            {isHidden ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+
+          {/* 13. Clear drawings */}
           <button
             onClick={() => {
               setDrawings([]);
