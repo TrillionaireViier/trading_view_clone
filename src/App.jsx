@@ -236,11 +236,21 @@ export default function App() {
     setIsAuthModalOpen(false);
   };
 
-  const [orders, setOrders] = useState([
-    { id: 1, symbol: 'BTC/USDT', type: 'LIMIT BUY', price: '91200.00', amount: '0.10', status: 'Working', time: '14:22:05' },
-    { id: 2, symbol: 'ETH/USDT', type: 'MARKET SELL', price: '3480.20', amount: '1.50', status: 'Filled', time: '12:05:40' },
-    { id: 3, symbol: 'SOL/USDT', type: 'STOP BUY', price: '220.00', amount: '5.00', status: 'Working', time: '11:14:30' },
-  ]);
+  const [bottomTab, setBottomTab] = useState('orders'); // orders, history, portfolio
+
+  const tradeHistory = [
+    { id: 101, symbol: 'BTC/USDT', side: 'BUY', price: '89,450.00', amount: '0.25 BTC', fee: '$2.23 USDT', status: 'Filled', time: '10:45:12' },
+    { id: 102, symbol: 'ETH/USDT', side: 'SELL', price: '3,520.00', amount: '2.00 ETH', fee: '$1.40 USDT', status: 'Filled', time: '09:18:40' },
+    { id: 103, symbol: 'SOL/USDT', side: 'BUY', price: '210.50', amount: '10.00 SOL', fee: '$0.42 USDT', status: 'Filled', time: '08:05:19' },
+    { id: 104, symbol: 'NVDA', side: 'BUY', price: '138.50', amount: '15 NVDA', fee: '$1.04 USD', status: 'Filled', time: 'Вчера' },
+  ];
+
+  const portfolioAssets = [
+    { asset: 'BTC', name: 'Bitcoin', total: '0.4500 BTC', available: '0.3500 BTC', value: '$41,602.86', pnl: '+14.2%' },
+    { asset: 'ETH', name: 'Ethereum', total: '4.5000 ETH', available: '4.5000 ETH', value: '$15,660.90', pnl: '+8.6%' },
+    { asset: 'SOL', name: 'Solana', total: '25.000 SOL', available: '20.000 SOL', value: '$5,385.00', pnl: '-2.1%' },
+    { asset: 'USDT', name: 'Tether USD', total: '48,250.00 USDT', available: '48,250.00 USDT', value: '$48,250.00', pnl: '0.0%' },
+  ];
 
   const [orderBook, setOrderBook] = useState({ asks: [], bids: [] });
 
@@ -610,57 +620,154 @@ export default function App() {
           <div className="h-44 border-t border-[#2a2e39] bg-[#1e222d] flex flex-col shrink-0">
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#2a2e39] bg-[#181c27]">
               <div className="flex items-center gap-4 text-xs font-bold">
-                <button className="text-[#2962ff] border-b-2 border-[#2962ff] pb-1 uppercase tracking-wider">Открытые Позиции ({orders.length})</button>
-                <button className="text-gray-400 hover:text-white pb-1 uppercase tracking-wider">История Сделок</button>
-                <button className="text-gray-400 hover:text-white pb-1 uppercase tracking-wider">Активы & Портфель</button>
+                <button 
+                  onClick={() => setBottomTab('orders')}
+                  className={`pb-1 uppercase tracking-wider transition-all ${
+                    bottomTab === 'orders' ? 'text-[#2962ff] border-b-2 border-[#2962ff]' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Открытые Позиции ({orders.length})
+                </button>
+                <button 
+                  onClick={() => setBottomTab('history')}
+                  className={`pb-1 uppercase tracking-wider transition-all ${
+                    bottomTab === 'history' ? 'text-[#2962ff] border-b-2 border-[#2962ff]' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  История Сделок ({tradeHistory.length})
+                </button>
+                <button 
+                  onClick={() => setBottomTab('portfolio')}
+                  className={`pb-1 uppercase tracking-wider transition-all ${
+                    bottomTab === 'portfolio' ? 'text-[#2962ff] border-b-2 border-[#2962ff]' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Активы & Портфель ({portfolioAssets.length})
+                </button>
               </div>
               <span className="text-[11px] text-emerald-400 font-mono flex items-center gap-1.5 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 <Circle className="w-2 h-2 fill-emerald-400 animate-pulse" /> WebSocket: Подключено
               </span>
             </div>
 
-            {/* ORDERS TABLE */}
-            <div className="flex-1 overflow-y-auto p-2">
-              <table className="w-full text-left text-xs font-mono">
-                <thead>
-                  <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
-                    <th className="pb-2 font-bold">Время</th>
-                    <th className="pb-2 font-bold">Инструмент</th>
-                    <th className="pb-2 font-bold">Тип Сделки</th>
-                    <th className="pb-2 font-bold">Цена Исполнения</th>
-                    <th className="pb-2 font-bold">Объем</th>
-                    <th className="pb-2 font-bold">Статус</th>
-                    <th className="pb-2 font-bold text-right">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2a2e39]/60">
-                  {orders.map(ord => (
-                    <tr key={ord.id} className="hover:bg-[#2a2e39]/50 transition-colors">
-                      <td className="py-2 text-gray-400">{ord.time}</td>
-                      <td className="py-2 font-bold text-white">{ord.symbol}</td>
-                      <td className={`py-2 font-extrabold ${ord.type.includes('BUY') ? 'text-[#089981]' : 'text-[#f23645]'}`}>
-                        {ord.type}
-                      </td>
-                      <td className="py-2 text-gray-200">${ord.price}</td>
-                      <td className="py-2 text-gray-200">{ord.amount}</td>
-                      <td className="py-2">
-                        <span className="px-2 py-0.5 rounded bg-blue-500/20 text-[#2962ff] text-[10px] font-bold">
-                          {ord.status}
-                        </span>
-                      </td>
-                      <td className="py-2 text-right">
-                        <button
-                          onClick={() => setOrders(orders.filter(o => o.id !== ord.id))}
-                          className="px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded text-[11px] transition-colors border border-red-500/20"
-                        >
-                          Отмена
-                        </button>
-                      </td>
+            {/* TAB CONTENT: OPEN ORDERS */}
+            {bottomTab === 'orders' && (
+              <div className="flex-1 overflow-y-auto p-2">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
+                      <th className="pb-2 font-bold">Время</th>
+                      <th className="pb-2 font-bold">Инструмент</th>
+                      <th className="pb-2 font-bold">Тип Сделки</th>
+                      <th className="pb-2 font-bold">Цена Исполнения</th>
+                      <th className="pb-2 font-bold">Объем</th>
+                      <th className="pb-2 font-bold">Статус</th>
+                      <th className="pb-2 font-bold text-right">Действия</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-[#2a2e39]/60">
+                    {orders.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="py-6 text-center text-gray-500 text-xs">Нет активных позиций</td>
+                      </tr>
+                    ) : orders.map(ord => (
+                      <tr key={ord.id} className="hover:bg-[#2a2e39]/50 transition-colors">
+                        <td className="py-2 text-gray-400">{ord.time}</td>
+                        <td className="py-2 font-bold text-white">{ord.symbol}</td>
+                        <td className={`py-2 font-extrabold ${ord.type.includes('BUY') ? 'text-[#089981]' : 'text-[#f23645]'}`}>
+                          {ord.type}
+                        </td>
+                        <td className="py-2 text-gray-200">${ord.price}</td>
+                        <td className="py-2 text-gray-200">{ord.amount}</td>
+                        <td className="py-2">
+                          <span className="px-2 py-0.5 rounded bg-blue-500/20 text-[#2962ff] text-[10px] font-bold">
+                            {ord.status}
+                          </span>
+                        </td>
+                        <td className="py-2 text-right">
+                          <button
+                            onClick={() => setOrders(orders.filter(o => o.id !== ord.id))}
+                            className="px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded text-[11px] transition-colors border border-red-500/20"
+                          >
+                            Отмена
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* TAB CONTENT: TRADE HISTORY */}
+            {bottomTab === 'history' && (
+              <div className="flex-1 overflow-y-auto p-2">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
+                      <th className="pb-2 font-bold">Время</th>
+                      <th className="pb-2 font-bold">Инструмент</th>
+                      <th className="pb-2 font-bold">Направление</th>
+                      <th className="pb-2 font-bold">Цена Сделки</th>
+                      <th className="pb-2 font-bold">Объем</th>
+                      <th className="pb-2 font-bold">Комиссия</th>
+                      <th className="pb-2 font-bold text-right">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2a2e39]/60">
+                    {tradeHistory.map(item => (
+                      <tr key={item.id} className="hover:bg-[#2a2e39]/50 transition-colors">
+                        <td className="py-2 text-gray-400">{item.time}</td>
+                        <td className="py-2 font-bold text-white">{item.symbol}</td>
+                        <td className={`py-2 font-extrabold ${item.side === 'BUY' ? 'text-[#089981]' : 'text-[#f23645]'}`}>
+                          {item.side}
+                        </td>
+                        <td className="py-2 text-gray-200">{item.price}</td>
+                        <td className="py-2 text-gray-200">{item.amount}</td>
+                        <td className="py-2 text-gray-400">{item.fee}</td>
+                        <td className="py-2 text-right">
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* TAB CONTENT: PORTFOLIO ASSETS */}
+            {bottomTab === 'portfolio' && (
+              <div className="flex-1 overflow-y-auto p-2">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr className="text-gray-500 border-b border-[#2a2e39] pb-1 uppercase text-[10px]">
+                      <th className="pb-2 font-bold">Актив</th>
+                      <th className="pb-2 font-bold">Название</th>
+                      <th className="pb-2 font-bold">Всего Баланс</th>
+                      <th className="pb-2 font-bold">Доступно</th>
+                      <th className="pb-2 font-bold">Стоимость ($)</th>
+                      <th className="pb-2 font-bold text-right">PnL (%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2a2e39]/60">
+                    {portfolioAssets.map(asset => (
+                      <tr key={asset.asset} className="hover:bg-[#2a2e39]/50 transition-colors">
+                        <td className="py-2 font-extrabold text-[#2962ff]">{asset.asset}</td>
+                        <td className="py-2 text-white font-bold">{asset.name}</td>
+                        <td className="py-2 text-gray-200">{asset.total}</td>
+                        <td className="py-2 text-gray-200">{asset.available}</td>
+                        <td className="py-2 font-bold text-white">{asset.value}</td>
+                        <td className={`py-2 text-right font-extrabold ${asset.pnl.startsWith('+') ? 'text-[#089981]' : asset.pnl.startsWith('-') ? 'text-[#f23645]' : 'text-gray-400'}`}>
+                          {asset.pnl}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
