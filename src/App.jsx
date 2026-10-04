@@ -77,6 +77,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [favorites, setFavorites] = useState(['BTC/USDT', 'ETH/USDT', 'NVDA']);
+  const [orders, setOrders] = useState([
+    { id: 1, symbol: 'BTC/USDT', type: 'LIMIT BUY', price: '91,200.00', amount: '0.10 BTC', status: 'Working', time: '12:30:15' },
+    { id: 2, symbol: 'ETH/USDT', type: 'LIMIT SELL', price: '3,550.00', amount: '1.50 ETH', status: 'Working', time: '11:15:00' },
+  ]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState({ name: 'Trader (Demo)', role: 'user', balance: '48,250.00' });
