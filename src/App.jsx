@@ -602,7 +602,7 @@ export default function App() {
           </div>
 
           {/* LIGHTWEIGHT CHART CONTAINER WITH INTERACTIVE DRAWING CANVAS OVERLAY */}
-          <div className="flex-1 w-full h-full relative overflow-hidden">
+          <div className="flex-1 w-full h-full min-h-[300px] relative overflow-hidden bg-[#131722]">
             <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
             
             <canvas
